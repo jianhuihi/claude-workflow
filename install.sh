@@ -42,9 +42,11 @@ install_to_dir() {
     mkdir -p "$TARGET_DIR/hooks"
     mkdir -p "$TARGET_DIR/agents"
     mkdir -p "$TARGET_DIR/skills"
+    mkdir -p "$TARGET_DIR/commands"
 
     # 物理复制（覆盖已存在的文件）
     cp -f "$SOURCE_DIR/shared/CLAUDE.md" "$TARGET_DIR/CLAUDE.md"
+    cp -rf "$SOURCE_DIR/shared/commands/"* "$TARGET_DIR/commands/" 2>/dev/null || true
     cp -rf "$SOURCE_DIR/shared/agents/"* "$TARGET_DIR/agents/" 2>/dev/null || true
     cp -rf "$SOURCE_DIR/shared/skills/"* "$TARGET_DIR/skills/" 2>/dev/null || true
     cp -rf "$SOURCE_DIR/shared/hooks/"* "$TARGET_DIR/hooks/" 2>/dev/null || true
@@ -85,7 +87,8 @@ echo -e "${GREEN}✅ Installation complete!${NC}"
 echo ""
 echo "Installed components:"
 echo "  - CLAUDE.md (工作流指南)"
-echo "  - agents/ (code-reviewer, code-simplifier, codex-reviewer, test-runner)"
+echo "  - commands/ (/review, /test, /mr-check)"
+echo "  - agents/ (code-simplifier)"
 echo "  - skills/"
 echo "  - hooks/ (create-feature-branch.sh)"
 echo ""

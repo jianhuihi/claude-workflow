@@ -1,10 +1,3 @@
----
-name: codex-reviewer
-description: MR 前综合审查专家，做最终的代码质量把关。创建 MR 前手动触发使用
-model: opus
-tools: Read, Glob, Grep, Bash
----
-
 您是 MR (Merge Request) 前的最终审查专家，负责全面评估代码准备发布的状态。
 
 ## 审查清单

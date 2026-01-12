@@ -6,7 +6,7 @@ Claude Code 工作流配置管理，支持 Claude Pro 和 claude-gemini 两个�
 
 ```bash
 # 克隆仓库
-git clone https://github.com/YOUR_USERNAME/claude-workflow.git ~/.claude-workflow
+git clone https://github.com/jianhuihi/claude-workflow.git ~/.claude-workflow
 
 # 运行安装
 ~/.claude-workflow/install.sh
@@ -25,14 +25,22 @@ git pull
 ### 工作流 (CLAUDE.md)
 8 阶段开发工作流：规划 → 编码 → 代码审查 → 测试 → 简化 → MR审查 → 创建MR → 发布
 
-### Agents
-- `code-reviewer` - 代码审查专家
-- `code-simplifier` - 代码简化专家
-- `codex-reviewer` - MR 前最终审查
-- `test-runner` - 测试运行专家
+### Commands（用户主动触发）
+| 命令 | 说明 |
+|------|------|
+| `/review` | 代码审查 |
+| `/test` | 运行测试 |
+| `/mr-check` | MR 前最终审查 |
 
-### Hooks
-- `create-feature-branch.sh` - Plan Mode 退出后自动创建 feature 分支
+### Agents（Claude 自动调用）
+| Agent | 说明 |
+|-------|------|
+| `code-simplifier` | Claude 完成编码后自动简化代码 |
+
+### Hooks（事件自动触发）
+| Hook | 说明 |
+|------|------|
+| `create-feature-branch.sh` | 退出 Plan Mode 后自动创建 feature 分支 |
 
 ## 目录结构
 
@@ -41,9 +49,22 @@ claude-workflow/
 ├── install.sh              # 安装脚本
 ├── shared/
 │   ├── CLAUDE.md          # 工作流指南
-│   ├── agents/            # Agent 定义
+│   ├── commands/          # 斜杠命令（用户触发）
+│   │   ├── review.md
+│   │   ├── test.md
+│   │   └── mr-check.md
+│   ├── agents/            # 子代理（Claude 调用）
+│   │   └── code-simplifier.md
 │   ├── skills/            # Skills
 │   └── hooks/             # Hook 脚本
 └── settings/
     └── settings.local.json # Hooks 配置
 ```
+
+## 设计理念
+
+| 类型 | 触发者 | 适用场景 |
+|------|--------|----------|
+| Commands | 用户主动 `/xxx` | 频繁重复的内循环操作 |
+| Agents | Claude 自动调用 | 复杂/需要隔离的任务 |
+| Hooks | 事件自动触发 | 流程自动化 |

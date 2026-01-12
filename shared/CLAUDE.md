@@ -3,9 +3,10 @@
 ## 推荐工作流程
 
 ### 1. 规划阶段
-- 使用 Plan Mode 确认实现方案
+- 使用 Plan Mode 确认实现方案（Shift+Tab 两次）
 - 明确需求和验收标准
 - 设计技术方案
+- **退出 Plan Mode 后自动创建 feature 分支**
 
 ### 2. 编码阶段
 - 按计划实现功能
@@ -14,20 +15,27 @@
 
 ### 3. 代码审查阶段
 编码完成后运行：
-> 请运行 code-reviewer agent 审查我刚才的代码改动
+```
+/review
+```
 
 ### 4. 调试测试阶段
 - 修复审查发现的问题
-- 运行测试确保通过
+- 运行测试：
+```
+/test
+```
 - 本地验证功能正常
 
 ### 5. 代码简化阶段
-测试通过后运行：
-> 请运行 code-simplifier agent 看看代码能否简化
+测试通过后，Claude 会自动调用 code-simplifier 子代理简化代码。
+也可以手动请求："请简化一下刚才的代码"
 
 ### 6. MR 前审查阶段
 准备提交 MR 前运行：
-> 请运行 codex-reviewer agent 做最终检查
+```
+/mr-check
+```
 
 ### 7. 创建 MR
 - 使用 `glab mr create` 创建 Merge Request
@@ -41,14 +49,45 @@
 
 ---
 
-## Agent 触发命令
+## 命令速查
 
-| 触发方式 | 说明 | 使用时机 |
-|---------|------|---------|
-| `请运行 code-reviewer` | 代码审查 | 编码完成后 |
-| `请运行 code-simplifier` | 代码简化 | 测试通过后 |
-| `请运行 codex-reviewer` | MR 前最终审查 | 创建 MR 前 |
-| `请运行 test-runner` | 运行测试 | 需要运行测试时 |
+### Commands（用户主动触发）
+
+| 命令 | 说明 | 使用时机 |
+|------|------|----------|
+| `/review` | 代码审查 | 编码完成后 |
+| `/test` | 运行测试 | 需要运行测试时 |
+| `/mr-check` | MR 前最终审查 | 创建 MR 前 |
+
+### Agents（Claude 自动调用）
+
+| Agent | 说明 | 触发方式 |
+|-------|------|----------|
+| `code-simplifier` | 代码简化 | Claude 完成编码后自动调用 |
+
+### Hooks（事件自动触发）
+
+| Hook | 说明 | 触发事件 |
+|------|------|----------|
+| `create-feature-branch` | 自动创建 feature 分支 | 退出 Plan Mode |
+
+---
+
+## 任务分类
+
+### Easy（一次完成）
+- 简单修复、小功能
+- 直接让 Claude 处理，auto-accept
+
+### Medium（需要规划）
+- 中等复杂度功能
+- 使用 Plan Mode 对齐方案
+- 确认后 auto-accept 实现
+
+### Hard（需要引导）
+- 复杂架构变更
+- 分步骤指导 Claude
+- 人工驾驶，Claude 辅助
 
 ---
 
