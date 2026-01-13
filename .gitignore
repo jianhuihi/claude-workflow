@@ -8,3 +8,5 @@
 
 # 忽略本地测试文件
 .local/
+.claude/
+__pycache__/

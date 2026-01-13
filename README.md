@@ -37,6 +37,12 @@ git pull
 |-------|------|
 | `code-simplifier` | Claude 完成编码后自动简化代码 |
 
+### Skills（功能扩展）
+| Skill | 说明 |
+|-------|------|
+| `skill-creator` | 快速创建和打包新的 Skill |
+| `agent-browser` | 浏览器自动化（基于 Playwright） |
+
 ### Hooks（事件自动触发）
 | Hook | 说明 |
 |------|------|
