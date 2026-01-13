@@ -82,6 +82,28 @@ else
     echo -e "${YELLOW}Skipping claude-gemini (directory not found)${NC}"
 fi
 
+# 4. 安装 scripts 到 /usr/local/bin
+if [ -d "$SOURCE_DIR/scripts" ]; then
+    echo -e "${YELLOW}Installing scripts to /usr/local/bin...${NC}"
+    for script in "$SOURCE_DIR/scripts/"*; do
+        if [ -f "$script" ]; then
+            script_name=$(basename "$script")
+            if [ -w "/usr/local/bin" ]; then
+                cp -f "$script" "/usr/local/bin/$script_name"
+                chmod +x "/usr/local/bin/$script_name"
+                echo -e "${GREEN}  ✓ $script_name${NC}"
+            elif sudo -n true 2>/dev/null; then
+                sudo cp -f "$script" "/usr/local/bin/$script_name"
+                sudo chmod +x "/usr/local/bin/$script_name"
+                echo -e "${GREEN}  ✓ $script_name${NC}"
+            else
+                echo -e "${RED}  ✗ $script_name (需要 sudo 权限)${NC}"
+                echo -e "${YELLOW}    手动安装: sudo cp $script /usr/local/bin/${NC}"
+            fi
+        fi
+    done
+fi
+
 echo ""
 echo -e "${GREEN}✅ Installation complete!${NC}"
 echo ""
@@ -91,6 +113,7 @@ echo "  - commands/ (/review, /test, /mr-check, /audit)"
 echo "  - agents/ (code-simplifier)"
 echo "  - skills/"
 echo "  - hooks/ (create-feature-branch.sh)"
+echo "  - scripts/ (claude-gemini)"
 echo ""
 echo "To update later: ~/.claude-workflow/install.sh"
 echo "To sync local changes back: cd ~/.claude-workflow && git add . && git commit && git push"
