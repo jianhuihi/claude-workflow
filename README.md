@@ -28,9 +28,10 @@ git pull
 ### Commands（用户主动触发）
 | 命令 | 说明 |
 |------|------|
+| `/audit` | 代码审计 |
+| `/mr-check` | MR 前最终审查 |
 | `/review` | 代码审查 |
 | `/test` | 运行测试 |
-| `/mr-check` | MR 前最终审查 |
 
 ### Agents（Claude 自动调用）
 | Agent | 说明 |
@@ -40,8 +41,24 @@ git pull
 ### Skills（功能扩展）
 | Skill | 说明 |
 |-------|------|
-| `skill-creator` | 快速创建和打包新的 Skill |
 | `agent-browser` | 浏览器自动化（基于 Playwright） |
+| `algorithmic-art` | 算法艺术生成 |
+| `brand-guidelines` | 品牌设计指南 |
+| `canvas-design` | Canvas 设计工具 |
+| `doc-coauthoring` | 文档协作编写 |
+| `docx` | Word 文档生成 |
+| `frontend-design` | 前端 UI/UX 设计 |
+| `internal-comms` | 内部沟通模板 |
+| `mcp-builder` | MCP 协议构建器 |
+| `pdf` | PDF 文件生成 |
+| `planning-with-files` | 文件规划工具 |
+| `pptx` | PowerPoint 演示文稿生成 |
+| `skill-creator` | 快速创建和打包新的 Skill |
+| `slack-gif-creator` | Slack GIF 生成器 |
+| `theme-factory` | 主题样式工厂 |
+| `web-artifacts-builder` | Web 组件构建器 |
+| `webapp-testing` | Web 应用测试工具 |
+| `xlsx` | Excel 表格生成 |
 
 ### Hooks（事件自动触发）
 | Hook | 说明 |
