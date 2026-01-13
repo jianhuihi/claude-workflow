@@ -10,6 +10,7 @@
 .local/
 __pycache__/
 
-# 忽略 .claude 目录，但保留 commands/
+# 忽略 .claude 目录，但保留 commands/ 和 CLAUDE.md
 .claude/*
 !.claude/commands/
+!.claude/CLAUDE.md
