@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# =========================================================
+# claude-gemini wrapper
+# 目标：
+# - ~/.config/claude/      留给 Claude CLI Pro（不碰它）
+# - ~/.config/claude-gemini/ 专门给 Gemini/代理环境（完全隔离）
+# =========================================================
+
+# 1) 独立配置根目录（不会污染 ~/.config/claude）
+ROOT="$HOME/.config/claude-gemini"
+mkdir -p "$ROOT"
+
+# 2) 强制 Claude 只使用这个隔离的配置根
+#    这样 Pro 的默认目录 ~/.config/claude/ 完全不会被读写
+export XDG_CONFIG_HOME="$ROOT"
+
+# 3) 兼容不同版本/实现：有的会看 CLAUDE_CONFIG_DIR
+export CLAUDE_CONFIG_DIR="$ROOT/claude"
+mkdir -p "$CLAUDE_CONFIG_DIR"
+
+# 4) 代理与鉴权
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8045"
+export ANTHROPIC_API_KEY="sk-2518131775224a2a87a9d7067e3c814b"
+# 不要把 key 写死在脚本里：从环境变量读取
+# 用法示例：
+#   export ANTHROPIC_API_KEY="YOUR_KEY"
+#   ./claude-gemini -p "hi"
+
+# 5) 写入隔离环境专用 settings.json（官方支持的结构）
+SETTINGS_FILE="$CLAUDE_CONFIG_DIR/settings.json"
+cat > "$SETTINGS_FILE" <<'EOF'
+{
+  "env": {
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-3-flash",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "gemini-3-pro-high",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-thinking"
+  }
+}
+EOF
+
+# 6) 强制使用这份 settings（避免误读到 Pro 的配置）
+exec claude --settings "$SETTINGS_FILE" "$@"

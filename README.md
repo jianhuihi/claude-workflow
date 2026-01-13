@@ -48,11 +48,18 @@ git pull
 |------|------|
 | `create-feature-branch.sh` | 退出 Plan Mode 后自动创建 feature 分支 |
 
+### Scripts（环境管理）
+| 脚本 | 说明 |
+|------|------|
+| `claude-gemini` | Claude API 代理环境 wrapper（隔离 Pro 配置） |
+
 ## 目录结构
 
 ```
 claude-workflow/
 ├── install.sh              # 安装脚本
+├── scripts/                # 环境管理脚本
+│   └── claude-gemini       # API 代理环境 wrapper
 ├── shared/
 │   ├── CLAUDE.md          # 工作流指南
 │   ├── commands/          # 斜杠命令（用户触发）
