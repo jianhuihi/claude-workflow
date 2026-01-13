@@ -88,7 +88,10 @@ if [ -d "$SOURCE_DIR/scripts" ]; then
     for script in "$SOURCE_DIR/scripts/"*; do
         if [ -f "$script" ]; then
             script_name=$(basename "$script")
-            if [ -w "/usr/local/bin" ]; then
+            # 如果已存在，跳过安装
+            if [ -f "/usr/local/bin/$script_name" ]; then
+                echo -e "${GREEN}  ✓ $script_name (已存在)${NC}"
+            elif [ -w "/usr/local/bin" ]; then
                 cp -f "$script" "/usr/local/bin/$script_name"
                 chmod +x "/usr/local/bin/$script_name"
                 echo -e "${GREEN}  ✓ $script_name${NC}"
@@ -102,6 +105,15 @@ if [ -d "$SOURCE_DIR/scripts" ]; then
             fi
         fi
     done
+fi
+
+# 5. 检查 claude-gemini 环境
+if [ ! -d "$GEMINI_DIR" ]; then
+    if command -v claude-gemini &> /dev/null; then
+        echo ""
+        echo -e "${YELLOW}提示: 首次使用请运行 'claude-gemini' 初始化配置目录${NC}"
+        echo -e "${YELLOW}      然后重新运行 install.sh 安装 claude-gemini 环境${NC}"
+    fi
 fi
 
 echo ""
