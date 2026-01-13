@@ -8,5 +8,8 @@
 
 # 忽略本地测试文件
 .local/
-.claude/
 __pycache__/
+
+# 忽略 .claude 目录，但保留 commands/
+.claude/*
+!.claude/commands/
