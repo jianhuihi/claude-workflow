@@ -145,10 +145,11 @@ install_superpowers() {
     # 安装插件
     local plugin_output
     plugin_output=$($CLI_CMD plugin install superpowers@superpowers-marketplace 2>&1) || true
-    if echo "$plugin_output" | grep -q "Successfully"; then
+    if echo "$plugin_output" | grep -q "Successfully\|already"; then
         echo -e "${GREEN}  ✓ superpowers plugin${NC}"
     else
         echo -e "${RED}  ✗ Failed to install superpowers plugin${NC}"
+        echo -e "${RED}    Output: $plugin_output${NC}"
     fi
 }
 
