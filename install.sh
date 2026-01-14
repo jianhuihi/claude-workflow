@@ -107,7 +107,42 @@ if [ -d "$SOURCE_DIR/scripts" ]; then
     done
 fi
 
-# 5. 检查 claude-gemini 环境
+# 5. 安装 superpowers 插件（通过官方插件系统）
+install_superpowers() {
+    local CLI_CMD=$1
+    local NAME=$2
+
+    if ! command -v "$CLI_CMD" &> /dev/null; then
+        return 0
+    fi
+
+    echo -e "${YELLOW}Installing superpowers plugin for $NAME...${NC}"
+
+    # 添加市场
+    local marketplace_output
+    marketplace_output=$($CLI_CMD plugin marketplace add obra/superpowers-marketplace 2>&1) || true
+    if echo "$marketplace_output" | grep -q "already installed"; then
+        echo -e "${GREEN}  ✓ superpowers-marketplace (已存在)${NC}"
+    elif echo "$marketplace_output" | grep -q "Successfully"; then
+        echo -e "${GREEN}  ✓ Added superpowers-marketplace${NC}"
+    else
+        echo -e "${RED}  ✗ Failed to add marketplace${NC}"
+    fi
+
+    # 安装插件
+    local plugin_output
+    plugin_output=$($CLI_CMD plugin install superpowers@superpowers-marketplace 2>&1) || true
+    if echo "$plugin_output" | grep -q "Successfully"; then
+        echo -e "${GREEN}  ✓ superpowers plugin${NC}"
+    else
+        echo -e "${RED}  ✗ Failed to install superpowers plugin${NC}"
+    fi
+}
+
+install_superpowers "claude" "Claude Pro"
+install_superpowers "claude-gemini" "claude-gemini"
+
+# 6. 检查 claude-gemini 环境
 if [ ! -d "$GEMINI_DIR" ]; then
     if command -v claude-gemini &> /dev/null; then
         echo ""
@@ -126,6 +161,7 @@ echo "  - agents/ (code-simplifier)"
 echo "  - skills/"
 echo "  - hooks/ (create-feature-branch.sh)"
 echo "  - scripts/ (claude-gemini)"
+echo "  - superpowers plugin (/superpowers:brainstorm, /superpowers:write-plan)"
 echo ""
 echo "To update later: ~/.claude-workflow/install.sh"
 echo "To sync local changes back: cd ~/.claude-workflow && git add . && git commit && git push"
