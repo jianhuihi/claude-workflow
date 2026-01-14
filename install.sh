@@ -51,6 +51,19 @@ install_to_dir() {
     cp -rf "$SOURCE_DIR/shared/skills/"* "$TARGET_DIR/skills/" 2>/dev/null || true
     cp -rf "$SOURCE_DIR/shared/hooks/"* "$TARGET_DIR/hooks/" 2>/dev/null || true
 
+    # 处理 settings.json（model 配置等）
+    if [ -f "$SOURCE_DIR/settings/settings.json" ]; then
+        if [ -f "$TARGET_DIR/settings.json" ]; then
+            if command -v jq &> /dev/null; then
+                echo -e "${YELLOW}  Merging settings.json...${NC}"
+                jq -s '.[0] * .[1]' "$TARGET_DIR/settings.json" "$SOURCE_DIR/settings/settings.json" > /tmp/merged_settings.json
+                mv /tmp/merged_settings.json "$TARGET_DIR/settings.json"
+            fi
+        else
+            cp -f "$SOURCE_DIR/settings/settings.json" "$TARGET_DIR/settings.json"
+        fi
+    fi
+
     # 处理 settings.local.json
     if [ -f "$TARGET_DIR/settings.local.json" ]; then
         # 已存在配置，用 jq 合并（保留现有 permissions，添加/更新 hooks）
