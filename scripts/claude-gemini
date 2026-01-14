@@ -30,15 +30,30 @@ export ANTHROPIC_API_KEY="sk-2518131775224a2a87a9d7067e3c814b"
 
 # 5) 写入隔离环境专用 settings.json（官方支持的结构）
 SETTINGS_FILE="$CLAUDE_CONFIG_DIR/settings.json"
-cat > "$SETTINGS_FILE" <<'EOF'
-{
+
+# Define the environment configuration we want to enforce
+DEFAULT_ENV_CONFIG='{
   "env": {
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-3-flash",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "gemini-3-pro-high",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-thinking"
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true
   }
-}
-EOF
+}'
+
+if [ -f "$SETTINGS_FILE" ] && command -v jq &> /dev/null; then
+  # Merge existing settings with our env config
+  # We use a temporary file to ensure atomic write
+  TMP_SETTINGS=$(mktemp)
+  jq --argjson envConf "$DEFAULT_ENV_CONFIG" '
+    . * $envConf
+  ' "$SETTINGS_FILE" > "$TMP_SETTINGS" && cat "$TMP_SETTINGS" > "$SETTINGS_FILE" && rm "$TMP_SETTINGS"
+else
+  # File doesn't exist or jq missing, create new
+  echo "$DEFAULT_ENV_CONFIG" > "$SETTINGS_FILE"
+fi
 
 # 6) 强制使用这份 settings（避免误读到 Pro 的配置）
 exec claude --settings "$SETTINGS_FILE" "$@"

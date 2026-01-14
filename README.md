@@ -5,8 +5,8 @@ Claude Code 工作流配置管理，支持 Claude Pro 和 claude-gemini 两个�
 ## 安装
 
 ```bash
-# 克隆仓库（包含 submodules）
-git clone --recurse-submodules https://github.com/jianhuihi/claude-workflow.git ~/.claude-workflow
+# 克隆仓库
+git clone https://github.com/jianhuihi/claude-workflow.git ~/.claude-workflow
 
 # 运行安装
 ~/.claude-workflow/install.sh
@@ -16,7 +16,7 @@ git clone --recurse-submodules https://github.com/jianhuihi/claude-workflow.git 
 
 ```bash
 cd ~/.claude-workflow
-git pull --recurse-submodules
+git pull
 ./install.sh
 ```
 
@@ -70,10 +70,12 @@ git pull --recurse-submodules
 |------|------|
 | `claude-gemini` | Claude API 代理环境 wrapper（隔离 Pro 配置） |
 
-### Plugins（第三方插件）
+### Plugins（官方插件系统）
 | 插件 | 说明 |
 |------|------|
 | `superpowers` | 完整的软件开发工作流（brainstorming, TDD, planning 等） |
+
+> 插件通过 `claude plugin install` 官方命令安装，install.sh 会自动处理。
 
 ## 目录结构
 
@@ -87,9 +89,7 @@ claude-workflow/
 │   ├── commands/          # 斜杠命令（用户触发）
 │   ├── agents/            # 子代理（Claude 调用）
 │   ├── skills/            # Skills
-│   ├── hooks/             # Hook 脚本
-│   └── plugins/           # 第三方插件 (git submodules)
-│       └── superpowers/   # 软件开发工作流
+│   └── hooks/             # Hook 脚本
 └── settings/
     └── settings.local.json # Hooks 配置
 ```
