@@ -82,38 +82,7 @@ else
     echo -e "${YELLOW}Skipping claude-gemini (directory not found)${NC}"
 fi
 
-# 4. 安装 plugins (git submodules)
-install_plugin() {
-    local PLUGIN_DIR=$1
-    local PLUGIN_NAME=$(basename "$PLUGIN_DIR")
-    local TARGET_DIR=$2
-
-    if [ -d "$PLUGIN_DIR/skills" ]; then
-        cp -rf "$PLUGIN_DIR/skills/"* "$TARGET_DIR/skills/" 2>/dev/null || true
-    fi
-    if [ -d "$PLUGIN_DIR/commands" ]; then
-        cp -rf "$PLUGIN_DIR/commands/"* "$TARGET_DIR/commands/" 2>/dev/null || true
-    fi
-    if [ -d "$PLUGIN_DIR/agents" ]; then
-        cp -rf "$PLUGIN_DIR/agents/"* "$TARGET_DIR/agents/" 2>/dev/null || true
-    fi
-}
-
-if [ -d "$SOURCE_DIR/shared/plugins" ]; then
-    echo -e "${YELLOW}Installing plugins...${NC}"
-    for plugin in "$SOURCE_DIR/shared/plugins/"*/; do
-        if [ -d "$plugin" ]; then
-            plugin_name=$(basename "$plugin")
-            echo -e "${GREEN}  ✓ $plugin_name${NC}"
-            install_plugin "$plugin" "$CLAUDE_DIR"
-            if [ -d "$GEMINI_DIR" ]; then
-                install_plugin "$plugin" "$GEMINI_DIR"
-            fi
-        fi
-    done
-fi
-
-# 5. 安装 scripts 到 /usr/local/bin
+# 4. 安装 scripts 到 /usr/local/bin
 if [ -d "$SOURCE_DIR/scripts" ]; then
     echo -e "${YELLOW}Installing scripts to /usr/local/bin...${NC}"
     for script in "$SOURCE_DIR/scripts/"*; do
@@ -138,7 +107,7 @@ if [ -d "$SOURCE_DIR/scripts" ]; then
     done
 fi
 
-# 6. 检查 claude-gemini 环境
+# 5. 检查 claude-gemini 环境
 if [ ! -d "$GEMINI_DIR" ]; then
     if command -v claude-gemini &> /dev/null; then
         echo ""
@@ -157,7 +126,6 @@ echo "  - agents/ (code-simplifier)"
 echo "  - skills/"
 echo "  - hooks/ (create-feature-branch.sh)"
 echo "  - scripts/ (claude-gemini)"
-echo "  - plugins/ (superpowers)"
 echo ""
 echo "To update later: ~/.claude-workflow/install.sh"
 echo "To sync local changes back: cd ~/.claude-workflow && git add . && git commit && git push"
