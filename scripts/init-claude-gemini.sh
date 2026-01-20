@@ -9,6 +9,12 @@ SHARE_PROJECTS=0
 DRY_RUN=0
 FORCE=0
 
+# 颜色输出
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
 usage() {
   cat >&2 <<'EOF'
 Usage:
@@ -16,9 +22,9 @@ Usage:
 
 What it does:
   - Creates isolated config dir: ~/.config/claude-gemini/claude
-  - Symlinks shared "capability" dirs from ~/.claude:
-      skills, plugins, commands, hooks, agents
-    Optional:
+  - Installs skills via npx add-skill
+  - Installs superpowers plugin
+  - Symlinks shared dirs from ~/.claude (optional):
       projects (enable with --share-projects)
   - Keeps "state" isolated in gemini dir:
       settings*, history, transcripts, cache, debug, telemetry, statsig, session-env, etc.
@@ -30,8 +36,9 @@ Options:
 EOF
 }
 
-log() { echo "[$APP] $*" >&2; }
-die() { echo "[$APP] ERROR: $*" >&2; exit 1; }
+log() { echo -e "${GREEN}[$APP]${NC} $*" >&2; }
+warn() { echo -e "${YELLOW}[$APP]${NC} $*" >&2; }
+die() { echo -e "${RED}[$APP] ERROR:${NC} $*" >&2; exit 1; }
 
 run() {
   if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -83,7 +90,7 @@ link_shared() {
     fi
 
     if [[ "$FORCE" -eq 1 ]]; then
-      log "Replacing existing ${dst_path} (backup first)"
+      warn "Replacing existing ${dst_path} (backup first)"
       backup_if_needed "$dst_path"
     else
       die "${dst_path} already exists. Re-run with --force to replace, or remove it manually."
@@ -92,6 +99,68 @@ link_shared() {
 
   run "ln -s \"$src_path\" \"$dst_path\""
   log "Linked: ${dst_path} -> ${src_path}"
+}
+
+# Install skills using npx add-skill
+install_skills() {
+  log "Installing skills via npx add-skill..."
+
+  # Skills to install
+  local skills=(
+    "anthropics/prompt-eng"
+    "anthropics/claude-code-guide"
+    "anthropics/mcp-server-dev"
+  )
+
+  for skill in "${skills[@]}"; do
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "+ npx add-skill $skill" >&2
+    else
+      local output
+      output=$(npx add-skill "$skill" 2>&1) || true
+      if echo "$output" | grep -q "Successfully\|already\|Added"; then
+        log "  ✓ $skill"
+      else
+        warn "  ✗ $skill: $output"
+      fi
+    fi
+  done
+}
+
+# Install superpowers plugin
+install_superpowers() {
+  if ! command -v claude-gemini &> /dev/null; then
+    warn "claude-gemini not found, skipping plugin install"
+    return
+  fi
+
+  log "Installing superpowers plugin..."
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "+ claude-gemini plugin marketplace add obra/superpowers-marketplace" >&2
+    echo "+ claude-gemini plugin install superpowers@superpowers-marketplace" >&2
+    return
+  fi
+
+  # Add marketplace
+  local marketplace_output
+  marketplace_output=$(claude-gemini plugin marketplace add obra/superpowers-marketplace 2>&1) || true
+  if echo "$marketplace_output" | grep -q "already installed"; then
+    log "  ✓ superpowers-marketplace (already exists)"
+  elif echo "$marketplace_output" | grep -q "Successfully"; then
+    log "  ✓ Added superpowers-marketplace"
+  else
+    warn "  Failed to add marketplace: $marketplace_output"
+  fi
+
+  # Install plugin
+  local plugin_output
+  plugin_output=$(claude-gemini plugin install superpowers@superpowers-marketplace 2>&1) || true
+  if echo "$plugin_output" | grep -q "Successfully\|already"; then
+    log "  ✓ superpowers plugin"
+  else
+    warn "  Failed to install superpowers plugin: $plugin_output"
+  fi
 }
 
 create_isolated_state_layout() {
@@ -178,14 +247,9 @@ main() {
 
   ensure_dir "$DST"
 
-  # Shared capability dirs
-  link_shared "skills"
-  link_shared "plugins"
-  link_shared "commands"
-  link_shared "hooks"
-  link_shared "agents"
-
+  # Shared dirs from ~/.claude (only projects/plugins if enabled)
   if [[ "$SHARE_PROJECTS" -eq 1 ]]; then
+    link_shared "plugins"
     link_shared "projects"
   else
     log "Skip sharing projects (enable with --share-projects)"
@@ -196,11 +260,17 @@ main() {
   write_settings_if_missing
   chmod_harden
 
+  # Install skills via npx add-skill
+  install_skills
+
+  # Install superpowers plugin
+  install_superpowers
+
   log "Done."
   log "Verify:"
-  log "  ls -l \"$DST\" | egrep \"skills|plugins|commands|hooks|agents|projects\""
+  log "  ls -la \"$DST\""
   log "Next:"
-  log "  Use your wrapper with: export CLAUDE_CONFIG_DIR=\"$DST\""
+  log "  Use: claude-gemini"
 }
 
 main "$@"
