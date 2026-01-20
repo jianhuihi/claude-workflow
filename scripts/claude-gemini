@@ -105,25 +105,9 @@ link_shared() {
 }
 
 create_isolated_state_layout() {
-  # Create common isolated dirs (safe if already exist)
-  local dirs=(
-    "cache"
-    "debug"
-    "telemetry"
-    "statsig"
-    "session-env"
-    "transcripts"
-    "shell-snapshots"
-    "file-history"
-    "plans"
-    "todos"
-  )
-  for d in "${dirs[@]}"; do
-    ensure_dir "${DST}/${d}"
-  done
-
-  # Touch isolated history file if not exists
-  touch "${DST}/history.jsonl"
+  # 让 Claude CLI 自己按需创建状态目录
+  # 只确保 history.jsonl 存在（避免首次运行警告）
+  touch "${DST}/history.jsonl" 2>/dev/null || true
 }
 
 # Install skills using npx add-skill
