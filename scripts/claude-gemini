@@ -8,31 +8,272 @@ set -euo pipefail
 # - ~/.config/claude-gemini/ 专门给 Gemini/代理环境（完全隔离）
 # =========================================================
 
-# 1) 独立配置根目录（不会污染 ~/.config/claude）
+APP="claude-gemini"
+SRC="$HOME/.claude"
 ROOT="$HOME/.config/claude-gemini"
-mkdir -p "$ROOT"
+DST="$ROOT/claude"
+INITIALIZED_MARKER="$DST/.initialized"
 
-# 2) 强制 Claude 只使用这个隔离的配置根
-#    这样 Pro 的默认目录 ~/.config/claude/ 完全不会被读写
-export XDG_CONFIG_HOME="$ROOT"
+# 命令行参数
+FORCE_INIT=0
+SHARE_PROJECTS=0
+SHOW_HELP=0
+CLAUDE_ARGS=()
 
-# 3) 兼容不同版本/实现：有的会看 CLAUDE_CONFIG_DIR
-export CLAUDE_CONFIG_DIR="$ROOT/claude"
-mkdir -p "$CLAUDE_CONFIG_DIR"
+# 颜色输出
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
 
-# 4) 代理与鉴权
-export ANTHROPIC_BASE_URL="http://127.0.0.1:8045"
-export ANTHROPIC_API_KEY="sk-2518131775224a2a87a9d7067e3c814b"
-# 不要把 key 写死在脚本里：从环境变量读取
-# 用法示例：
-#   export ANTHROPIC_API_KEY="YOUR_KEY"
-#   ./claude-gemini -p "hi"
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  claude-gemini [options] [claude args...]
 
-# 5) 写入隔离环境专用 settings.json（官方支持的结构）
-SETTINGS_FILE="$CLAUDE_CONFIG_DIR/settings.json"
+Options:
+  --init              Force re-initialization
+  --share-projects    Share ~/.claude/projects (only during init)
+  --help              Show this help
 
-# Define the environment configuration we want to enforce
-DEFAULT_ENV_CONFIG='{
+Description:
+  Runs Claude CLI with isolated config in ~/.config/claude-gemini/
+  On first run, automatically initializes the environment.
+
+Examples:
+  claude-gemini                    # Start Claude (auto-init if needed)
+  claude-gemini --init             # Force re-initialization
+  claude-gemini -p "hello"         # Pass args to claude
+EOF
+}
+
+log() { echo -e "${GREEN}[$APP]${NC} $*" >&2; }
+warn() { echo -e "${YELLOW}[$APP]${NC} $*" >&2; }
+die() { echo -e "${RED}[$APP] ERROR:${NC} $*" >&2; exit 1; }
+
+# =========================================================
+# 初始化函数（从 init-claude-gemini.sh 合并）
+# =========================================================
+
+backup_if_needed() {
+  local path="$1"
+  if [[ -e "$path" || -L "$path" ]]; then
+    local ts
+    ts="$(date +%Y%m%d%H%M%S)"
+    mv "$path" "${path}.bak.${ts}"
+  fi
+}
+
+ensure_dir() {
+  local dir="$1"
+  mkdir -p "$dir"
+}
+
+ensure_src_dir() {
+  local dir="$1"
+  if [[ ! -d "$dir" ]]; then
+    mkdir -p "$dir"
+  fi
+}
+
+link_shared() {
+  local name="$1"
+  local src_path="${SRC}/${name}"
+  local dst_path="${DST}/${name}"
+
+  ensure_src_dir "$src_path"
+  ensure_dir "$DST"
+
+  # If dst exists:
+  if [[ -e "$dst_path" || -L "$dst_path" ]]; then
+    # If already correct symlink, do nothing
+    if [[ -L "$dst_path" ]]; then
+      local target
+      target="$(readlink "$dst_path" || true)"
+      if [[ "$target" == "$src_path" ]]; then
+        log "OK: ${dst_path} already links to ${src_path}"
+        return
+      fi
+    fi
+    # Replace existing
+    warn "Replacing existing ${dst_path} (backup first)"
+    backup_if_needed "$dst_path"
+  fi
+
+  ln -s "$src_path" "$dst_path"
+  log "Linked: ${dst_path} -> ${src_path}"
+}
+
+create_isolated_state_layout() {
+  # Create common isolated dirs (safe if already exist)
+  local dirs=(
+    "cache"
+    "debug"
+    "telemetry"
+    "statsig"
+    "session-env"
+    "transcripts"
+    "shell-snapshots"
+    "file-history"
+    "plans"
+    "todos"
+  )
+  for d in "${dirs[@]}"; do
+    ensure_dir "${DST}/${d}"
+  done
+
+  # Touch isolated history file if not exists
+  touch "${DST}/history.jsonl"
+}
+
+# Install skills using npx add-skill
+install_skills() {
+  log "Installing skills via npx add-skill..."
+
+  # Skills to install (use valid GitHub repos)
+  # Note: Add your skill repos here as needed
+  local skills=(
+    # "owner/repo"  # Uncomment and add valid skill repos
+  )
+
+  if [[ ${#skills[@]} -eq 0 ]]; then
+    log "  No skills configured to install"
+    return
+  fi
+
+  for skill in "${skills[@]}"; do
+    local output
+    output=$(npx add-skill "$skill" 2>&1) || true
+    if echo "$output" | grep -q "Successfully\|already\|Added"; then
+      log "  ✓ $skill"
+    else
+      warn "  ✗ $skill: $output"
+    fi
+  done
+}
+
+# Install superpowers plugin
+install_superpowers() {
+  log "Installing superpowers plugin..."
+
+  # Add marketplace
+  local marketplace_output
+  marketplace_output=$(claude plugin marketplace add obra/superpowers-marketplace 2>&1) || true
+  if echo "$marketplace_output" | grep -q "already installed"; then
+    log "  ✓ superpowers-marketplace (already exists)"
+  elif echo "$marketplace_output" | grep -q "Successfully"; then
+    log "  ✓ Added superpowers-marketplace"
+  else
+    warn "  Failed to add marketplace: $marketplace_output"
+  fi
+
+  # Install plugin
+  local plugin_output
+  plugin_output=$(claude plugin install superpowers@superpowers-marketplace 2>&1) || true
+  if echo "$plugin_output" | grep -q "Successfully\|already"; then
+    log "  ✓ superpowers plugin"
+  else
+    warn "  Failed to install superpowers plugin: $plugin_output"
+  fi
+}
+
+chmod_harden() {
+  # Harden permissions (best-effort)
+  chmod 700 "$(dirname "$DST")" "$DST" 2>/dev/null || true
+  chmod 600 "${DST}/settings.json" "${DST}/history.jsonl" 2>/dev/null || true
+}
+
+do_init() {
+  log "Initializing claude-gemini environment..."
+  log "Source (default): $SRC"
+  log "Destination (gemini): $DST"
+
+  ensure_dir "$DST"
+
+  # 默认共享的目录（从 ~/.claude 软链接到 claude-gemini）
+  link_shared "skills"
+  link_shared "plugins"
+  link_shared "commands"
+  link_shared "hooks"
+  link_shared "agents"
+
+  # projects 目录可选共享（通过 --share-projects）
+  if [[ "$SHARE_PROJECTS" -eq 1 ]]; then
+    link_shared "projects"
+  else
+    log "Skip sharing projects (use --share-projects to enable)"
+  fi
+
+  # Isolated state
+  create_isolated_state_layout
+  chmod_harden
+
+  # Install skills via npx add-skill
+  install_skills
+
+  # Install superpowers plugin (use claude directly with env vars set)
+  install_superpowers
+
+  # Create initialized marker
+  date '+%Y-%m-%d %H:%M:%S' > "$INITIALIZED_MARKER"
+  log "Initialization complete."
+}
+
+# =========================================================
+# 参数解析
+# =========================================================
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --init)
+        FORCE_INIT=1
+        shift
+        ;;
+      --share-projects)
+        SHARE_PROJECTS=1
+        shift
+        ;;
+      --help|-h)
+        SHOW_HELP=1
+        shift
+        ;;
+      *)
+        # 其他参数透传给 claude
+        CLAUDE_ARGS+=("$1")
+        shift
+        ;;
+    esac
+  done
+}
+
+# =========================================================
+# 主逻辑
+# =========================================================
+
+main() {
+  parse_args "$@"
+
+  if [[ "$SHOW_HELP" -eq 1 ]]; then
+    usage
+    exit 0
+  fi
+
+  # 1) 创建配置根目录
+  mkdir -p "$ROOT"
+  mkdir -p "$DST"
+
+  # 2) 强制 Claude 只使用这个隔离的配置根
+  export XDG_CONFIG_HOME="$ROOT"
+  export CLAUDE_CONFIG_DIR="$DST"
+
+  # 3) 代理与鉴权
+  export ANTHROPIC_BASE_URL="http://127.0.0.1:8045"
+  export ANTHROPIC_API_KEY="sk-2518131775224a2a87a9d7067e3c814b"
+
+  # 4) 写入/合并 settings.json
+  SETTINGS_FILE="$DST/settings.json"
+  DEFAULT_ENV_CONFIG='{
   "env": {
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-sonnet-4-5-20250929",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-opus-4-5-20251101",
@@ -43,17 +284,27 @@ DEFAULT_ENV_CONFIG='{
   }
 }'
 
-if [ -f "$SETTINGS_FILE" ] && command -v jq &> /dev/null; then
-  # Merge existing settings with our env config
-  # We use a temporary file to ensure atomic write
-  TMP_SETTINGS=$(mktemp)
-  jq --argjson envConf "$DEFAULT_ENV_CONFIG" '
-    . * $envConf
-  ' "$SETTINGS_FILE" > "$TMP_SETTINGS" && cat "$TMP_SETTINGS" > "$SETTINGS_FILE" && rm "$TMP_SETTINGS"
-else
-  # File doesn't exist or jq missing, create new
-  echo "$DEFAULT_ENV_CONFIG" > "$SETTINGS_FILE"
-fi
+  if [ -f "$SETTINGS_FILE" ] && command -v jq &> /dev/null; then
+    # Merge existing settings with our env config
+    TMP_SETTINGS=$(mktemp)
+    jq --argjson envConf "$DEFAULT_ENV_CONFIG" '. * $envConf' "$SETTINGS_FILE" > "$TMP_SETTINGS" && \
+      cat "$TMP_SETTINGS" > "$SETTINGS_FILE" && rm "$TMP_SETTINGS"
+  else
+    # File doesn't exist or jq missing, create new
+    echo "$DEFAULT_ENV_CONFIG" > "$SETTINGS_FILE"
+  fi
 
-# 6) 强制使用这份 settings（避免误读到 Pro 的配置）
-exec claude --settings "$SETTINGS_FILE" "$@"
+  # 5) 首次运行检测或强制初始化
+  if [[ "$FORCE_INIT" -eq 1 ]]; then
+    log "Force re-initialization requested..."
+    do_init
+  elif [[ ! -f "$INITIALIZED_MARKER" ]]; then
+    log "First run detected, initializing..."
+    do_init
+  fi
+
+  # 6) 启动 claude
+  exec claude --settings "$SETTINGS_FILE" "${CLAUDE_ARGS[@]+"${CLAUDE_ARGS[@]}"}"
+}
+
+main "$@"
