@@ -68,7 +68,21 @@ git pull
 ### Scripts（环境管理）
 | 脚本 | 说明 |
 |------|------|
-| `claude-gemini` | Claude API 代理环境 wrapper（隔离 Pro 配置） |
+| `claude-gemini` | Claude API 代理环境 wrapper（隔离 Pro 配置，首次运行自动初始化） |
+
+**claude-gemini 用法：**
+```bash
+claude-gemini                    # 启动（首次运行自动初始化）
+claude-gemini --init             # 强制重新初始化
+claude-gemini --share-projects   # 初始化时共享 ~/.claude/projects
+claude-gemini -p "hello"         # 传递参数给 claude
+```
+
+**自动初始化内容：**
+- 创建隔离目录 `~/.config/claude-gemini/claude`
+- 软链接共享目录：skills, plugins, commands, hooks, agents
+- 安装 superpowers 插件
+- 创建 `.initialized` 标记文件
 
 ### Plugins（官方插件系统）
 | 插件 | 说明 |
