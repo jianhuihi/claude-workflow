@@ -34,9 +34,9 @@ SETTINGS_FILE="$CLAUDE_CONFIG_DIR/settings.json"
 # Define the environment configuration we want to enforce
 DEFAULT_ENV_CONFIG='{
   "env": {
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-3-flash",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "gemini-3-pro-high",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-thinking"
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-sonnet-4-5-20250929",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-opus-4-5-20251101",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-20251101"
   },
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true
