@@ -202,9 +202,9 @@ write_settings_if_missing() {
   # NOTE: We do NOT set ANTHROPIC_API_KEY here.
   local json='{
   "env": {
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-3-flash",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "gemini-3-pro-high",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-thinking"
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-sonnet-4-5-20250929",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-opus-4-5-20251101",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-20251101"
   },
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true
